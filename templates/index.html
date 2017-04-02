@@ -1,0 +1,96 @@
+<html>
+
+<head>
+<title>pHAT Sniffer</title>
+<link rel="stylesheet" href="/static/bootstrap.min.css" />
+<link rel="stylesheet" href="/static/style.css" />
+<script src="/static/jquery.min.js"></script>
+<script src="/static/bootstrap.min.js"></script>
+<script src="/static/sorttable.js"></script>
+</head>
+
+<body>
+
+<div class="jumbotron text-center">
+<h1><img src="/static/logo.png" style="height:1em;" /> pHAT Sniffer</h1>
+</div>
+
+<div class="container">
+
+<ul class="nav nav-tabs">
+<li class="active"><a data-toggle="tab" href="#beacons">Beacons</a></li>
+<li><a data-toggle="tab" href="#clients">Clients</a></li>
+<li><a data-toggle="tab" href="#control">Control</a></li>
+</ul>
+
+<div class="tab-content">
+
+<div id="beacons" class="tab-pane fade in active">
+<p>
+<table class="sortable">
+<thead>
+<tr>
+<th>MAC</th>
+<th>SSID</th>
+<th>Channel</th>
+<th>Vendor</th>
+<th>RSSI (dBm)</th>
+</tr>
+</thead>
+<tbody>
+{% for addr, data in beacons %}
+<tr>
+<td>{{addr}}</td>
+<td>{{data['ssid']}}</td>
+<td>{{data['channel']}}</td>
+<td>{{data['vendor']}}</td>
+<td>{{data['rssi']}}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</p>
+</div>
+
+<div id="clients" class="tab-pane fade">
+<p>
+<table class="sortable">
+<thead>
+<tr>
+<th>MAC</th>
+<th>Beacon</th>
+<th>SSID</th>
+<th>Channel</th>
+<th>Vendor</th>
+<th>RSSI (dBm)</th>
+</tr>
+</thead>
+<tbody>
+{% for addr, data in clients %}
+<tr>
+<td>{{addr}}</td>
+<td>{{data['beacon']}}</td>
+<td>{{data['ssid']}}</td>
+<td>{{data['channel']}}</td>
+<td>{{data['vendor']}}</td>
+<td>{{data['rssi']}}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</p>
+</div>
+
+<div id="control" class="tab-pane fade">
+<p>
+<div class="btn-toolbar">
+<a class="btn btn-default" href="/download" role="button">Download data</a>
+<a class="btn btn-default" href="/reset" role="button">Reset pHat</a>
+</div>
+</p>
+</div>
+
+</div>
+
+</body>
+</html>

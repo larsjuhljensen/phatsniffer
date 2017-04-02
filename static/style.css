@@ -1,0 +1,31 @@
+body {
+	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+	font-size: 14pt;
+}
+
+.jumbotron {
+	background-color: #dd4b39;
+	color: #000;
+}
+
+a {
+	color: #000;
+}
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+th, td {
+	text-align: left;
+	padding: 8px;
+}
+
+tr:nth-child(even){
+	background-color: #eee;
+}
+
+th {
+	background-color: #ddd;
+}
