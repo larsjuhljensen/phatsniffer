@@ -75,7 +75,7 @@ struct sniffer_buf2 {
   struct {
     uint16_t len;
     uint16_t seq;
-    uint8_t  address3[6];
+    uint8_t  address3[ETH_MAC_LEN];
   } lenseq[1];
 };
 
@@ -103,7 +103,6 @@ struct clientinfo
   uint8_t station[ETH_MAC_LEN];
   uint8_t rssi;
   uint16_t seq;
-  bool deauth;
   bool err;
 };
 
@@ -211,9 +210,9 @@ struct clientinfo parse_client(uint8_t *frame, uint16_t framelen, signed rssi) {
   memcpy(ci.station, station, ETH_MAC_LEN);
   memcpy(ci.beacon, beacon, ETH_MAC_LEN);
   ci.seq = frame[23] * 0xFF + (frame[22] & 0xF0);
-  ci.deauth = 0;
   return ci;
 }
+
 
 /*
  * Function that stores information about single beacon
@@ -254,7 +253,6 @@ int store_client(clientinfo ci)
     }
   }
   if (known) {
-    ci.deauth = clients_known[u].deauth;
     memcpy(&clients_known[u], &ci, sizeof(ci));
   } else {
     memcpy(&clients_known[clients_index], &ci, sizeof(ci));
@@ -316,7 +314,7 @@ void deauth_client(clientinfo ci)
  */
 void print_beacon(beaconinfo bi) {
   Serial.print("\"");
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < ETH_MAC_LEN; i++) {
     if (i > 0) Serial.print(":");
     Serial.printf("%02x", bi.beacon[i]);
   }
@@ -330,12 +328,12 @@ void print_beacon(beaconinfo bi) {
 void print_client(clientinfo ci)
 {
   Serial.print("\"");
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < ETH_MAC_LEN; i++) {
     if (i > 0) Serial.print(":");
     Serial.printf("%02x", ci.station[i]);
   }
   Serial.print("\":{\"beacon\":\"");
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < ETH_MAC_LEN; i++) {
     if (i > 0) Serial.print(":");
     Serial.printf("%02x", ci.beacon[i]);
   }
@@ -377,7 +375,43 @@ void print_all() {
   print_beacons();
   Serial.print(",\"clients\":");
   print_clients();
-  Serial.println("}");
+  Serial.print("}");
+}
+
+
+/*
+ * Function that reads and executes a command from serial
+ */
+void read_command() {
+  char command[64];
+  command[Serial.readBytesUntil('\n', command, 63)] = '\0';
+  char *argument = strchr(command, ' ');
+  if (argument != NULL) {
+    *argument = '\0';
+    argument++;
+  }
+  if (strcmp(command, "deauth_client") == 0) {
+    uint8_t station[ETH_MAC_LEN];
+    for (int i = 0; i < ETH_MAC_LEN; i++) {
+      station[i] = strtol(argument+3*i, NULL, HEX);
+    }
+    for (int u = 0; u < clients_count; u++) {
+      if (memcmp(clients_known[u].station, station, ETH_MAC_LEN) == 0) {
+        deauth_client(clients_known[u]);
+        break;
+      }
+    }
+  }
+  else if (strcmp(command, "print_all") == 0) {
+    print_all();
+  }
+  else if (strcmp(command, "print_beacons") == 0) {
+    print_beacons();
+  }
+  else if (strcmp(command, "print_clients") == 0) {
+    print_clients();
+  }
+  Serial.println("");
 }
 
 
@@ -408,8 +442,8 @@ void loop() {
     nothing_new++;
   }
   delay(1);
-  if ((Serial.available() > 0) && (Serial.read() == '\n')) {
-    print_all();
+  if (Serial.available() > 0) {
+    read_command();
   }
 }
 

@@ -14,15 +14,19 @@ def read_vendors(filename):
 		vendors[prefix] = vendor
 
 
-def get_sniffer_data():
+def send_command(command):
 	comm = serial.Serial('/dev/serial0', 115200)
 	if comm.isOpen():
 		comm.close()
 	comm.open()
 	comm.flushInput()
-	comm.write('\r\n')
+	comm.write(command+'\n')
 	time.sleep(0.1)
-	data = json.loads(comm.readline())
+	return comm.readline()
+
+
+def get_sniffer_data():
+	data = json.loads(send_command('print_all'))
 	beacons = data['beacons']
 	clients = data['clients']
 	for beacon in beacons:
