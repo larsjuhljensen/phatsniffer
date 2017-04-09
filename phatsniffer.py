@@ -26,7 +26,7 @@ def send_command(command):
 
 
 def get_sniffer_data():
-	data = json.loads(send_command('print_all'))
+	data = json.loads(send_command('print_all').decode('utf-8', 'ignore').encode('utf-8'))
 	beacons = data['beacons']
 	clients = data['clients']
 	for beacon in beacons:
