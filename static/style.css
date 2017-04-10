@@ -8,6 +8,25 @@ body {
 	color: #000;
 }
 
+
+svg circle {
+  fill: #999;
+  fill-opacity: 0.25;
+  stroke: #777;
+  stroke-width: 1px;
+}
+
+svg .leaf circle {
+  fill: #dd4b39;
+  fill-opacity: 1;
+}
+
+svg text {
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+
+
 a {
 	color: #000;
 }

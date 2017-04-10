@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/static/bootstrap.min.css" />
 <link rel="stylesheet" href="/static/style.css" />
 <script src="/static/jquery.min.js"></script>
+<script src="/static/d3.v4.min.js"></script>
 <script src="/static/bootstrap.min.js"></script>
 <script src="/static/sorttable.js"></script>
 </head>
@@ -18,14 +19,31 @@
 <div class="container">
 
 <ul class="nav nav-tabs">
-<li class="active"><a data-toggle="tab" href="#beacons">Beacons</a></li>
+<li class="active"><a data-toggle="tab" href="#overview">Overview</a></li>
+<li><a data-toggle="tab" href="#beacons">Beacons</a></li>
 <li><a data-toggle="tab" href="#clients">Clients</a></li>
 <li><a data-toggle="tab" href="#control">Control</a></li>
 </ul>
 
 <div class="tab-content">
 
-<div id="beacons" class="tab-pane fade in active">
+<div id="overview" class="tab-pane fade in active">
+<svg width="600" height="610"></svg>
+<script>
+{% autoescape false %}
+var circles = {{circles}}
+{% endautoescape %}
+var svg = d3.select("svg"),diameter = +svg.attr("width"),g = svg.append("g").attr("transform","translate(2,12)"), format = d3.format(",d");
+var pack = d3.pack().size([diameter-4,diameter-4]);
+root = d3.hierarchy(circles).sum(function(d) {return d.size;}).sort(function(a,b) {return b.value-a.value;});
+var node = g.selectAll(".node").data(pack(root).descendants()).enter().append("g").attr("class", function(d) {return d.children ? "node" : "leaf node";}).attr("transform", function(d) { return "translate("+d.x+","+d.y+")";});
+node.append("title").text(function(d) {return d.data.name+"\n"+format(d.value);});
+node.append("circle").attr("r", function(d) {return d.r;});
+node.filter(function(d) {return !d.children;}).append("text").attr("dy", "0.3em").text(function(d) {return d.data.name.substring(0, d.r/3);});
+</script>
+</div>
+
+<div id="beacons" class="tab-pane fade">
 <p>
 <table class="sortable">
 <thead>
