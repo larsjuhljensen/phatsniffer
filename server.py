@@ -9,14 +9,23 @@ app = Flask(__name__)
 @app.route('/')
 def index():
 	data = phatsniffer.get_sniffer_data()
-	beacons = sorted(data['beacons'].iteritems(), key=lambda x: -x[1]['rssi'])
-	clients = sorted(data['clients'].iteritems(), key=lambda x: -x[1]['rssi'])
+	data_beacons = data['beacons']
+	data_clients = data['clients']
+	beacons = sorted(data_beacons.iteritems(), key=lambda x: -x[1]['rssi'])
+	clients = sorted(data_clients.iteritems(), key=lambda x: -x[1]['rssi'])
+	beacon_clients = {}
+	for client in data_clients:
+		beacon = data_clients[client]['beacon']
+		if beacon in data_beacons:
+			if beacon not in beacon_clients:
+				beacon_clients[beacon] = []
+			beacon_clients[beacon].append(client)
 	circles = {}
 	circles['name'] = 'root'
 	circles['children'] = []
 	circles_beacons = circles['children']
-	for beacon in data['beacons']:
-		data_beacon = data['beacons'][beacon]
+	for beacon in beacon_clients:
+		data_beacon = data_beacons[beacon]
 		circles_beacon = {}
 		if 'vendor' in data_beacon:
 			circles_beacon['name'] = data_beacon['vendor']
@@ -24,16 +33,18 @@ def index():
 			circles_beacon['name'] = 'Unknown'
 		circles_beacon['children'] = []
 		circles_clients = circles_beacon['children']
-		for client in data['clients']:
-			data_client = data['clients'][client]
-			if data_client['beacon'] == beacon and data_client['rssi'] > -100:
-				circles_client = {}
-				if 'vendor' in data_client:
-					circles_client['name'] = data_client['vendor']
-				else:
-					circles_client['name'] = 'Unknown'
+		for client in beacon_clients[beacon]:
+			data_client = data_clients[client]
+			circles_client = {}
+			if 'vendor' in data_client:
+				circles_client['name'] = data_client['vendor']
+			else:
+				circles_client['name'] = 'Unknown'
+			if data_client['rssi'] > -99:
 				circles_client['size'] = math.sqrt(100+data_client['rssi'])
-				circles_clients.append(circles_client)
+			else:
+				data_client['size'] = 1
+			circles_clients.append(circles_client)
 		circles_beacons.append(circles_beacon)
 	return render_template('index.html', beacons=beacons, clients=clients, circles=json.dumps(circles))
 
