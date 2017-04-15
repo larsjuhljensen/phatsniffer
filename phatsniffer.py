@@ -25,6 +25,14 @@ def send_command(command):
 	return comm.readline()
 
 
+def create_fake_beacon(channel, ssid):
+	return send_command('fake_beacon %d %s' % (channel, ssid))
+
+
+def remove_fake_beacon(channel):
+	return send_command('fake_beacon %d' % channel)
+
+
 def get_sniffer_data():
 	data = json.loads(send_command('print_all').decode('utf-8', 'ignore').encode('utf-8'))
 	beacons = data['beacons']
