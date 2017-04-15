@@ -1,5 +1,5 @@
 /*
- * By Lars Juhl Jensen 20170328 compiled on OS X using Arduino 1.8.2
+ * By Lars Juhl Jensen 20170415 compiled on OS X using Arduino 1.8.2
  * Distributed under the MIT license (URL)
  * 
  * Based on Ray Burnette's ESP8266 Mini Sniff (MIT) https://www.hackster.io/rayburne/esp8266-mini-sniff-f6b93a
@@ -113,7 +113,7 @@ struct clientinfo {
  */
 beaconinfo beacons_known[MAX_BEACONS];
 clientinfo clients_known[MAX_CLIENTS];
-char fake_beacon_ssid[14][14];
+char fake_beacon_ssid[14][16];
 unsigned int beacons_count = 0;
 unsigned int beacons_index = 0;
 unsigned int clients_count = 0;
@@ -315,9 +315,9 @@ void deauth_client(clientinfo ci) {
 uint8_t beacon_packet[128] = {
   0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
   0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0xc0, 0x6c, 0x83, 0x51, 0xf7, 0x8f, 0x0f, 0x00, 0x00, 0x00,
-  0x64, 0x00, 0x01, 0x04, 0x00, 0x0e, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72,
-  0x72, 0x72, 0x72, 0x72, 0x72, 0x01, 0x08, 0x82, 0x84, 0x8b, 0x96, 0x24, 0x30, 0x48, 0x6c, 0x03,
-  0x01, 0x04
+  0x64, 0x00, 0x01, 0x04, 0x00, 0x10, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x72,
+  0x72, 0x72, 0x72, 0x72, 0x72, 0x72, 0x01, 0x08, 0x82, 0x84, 0x8b, 0x96, 0x24, 0x30, 0x48, 0x6c,
+  0x03, 0x01, 0x04
 };
 void fake_beacon(char *ssid, uint8_t packets) {
   if (strlen(ssid) > 0 && packets > 0) {
@@ -327,7 +327,7 @@ void fake_beacon(char *ssid, uint8_t packets) {
     beacon_packet[13] = beacon_packet[19] = random(256);
     beacon_packet[14] = beacon_packet[20] = random(256);
     beacon_packet[15] = beacon_packet[21] = random(256);
-    strncpy((char *)beacon_packet+38, ssid, 14);
+    strncpy((char *)beacon_packet+38, ssid, 16);
     for (uint8_t i = 0; i < packets; i++) {
       wifi_send_pkt_freedom(beacon_packet, 57, 0);
     }
@@ -432,8 +432,8 @@ void read_command() {
     uint8_t argument_channel = strtol(argument, &argument_ssid, DEC);
     if (argument_ssid != argument) {
       if (*argument_ssid != '\0') argument_ssid++;
-      memset(fake_beacon_ssid[argument_channel-1], 0, 14);
-      strncpy(fake_beacon_ssid[argument_channel-1], argument_ssid, 14);
+      memset(fake_beacon_ssid[argument_channel-1], 0, 16);
+      strncpy(fake_beacon_ssid[argument_channel-1], argument_ssid, 16);
     }
   }
   else if (strcmp(command, "print_all") == 0) {
@@ -466,7 +466,7 @@ void setup() {
  * Main loop
  */
 void loop() {
-  if (nothing_new > 100) {
+  if (nothing_new >= 10) {
     nothing_new = 0;
     channel++;
     if (channel == 15) channel = 1;
