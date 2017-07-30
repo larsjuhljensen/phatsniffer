@@ -14,6 +14,8 @@ def index():
 	beacons = sorted(data_beacons.iteritems(), key=lambda x: -x[1]['rssi'])
 	clients = sorted(data_clients.iteritems(), key=lambda x: -x[1]['rssi'])
 	beacon_clients = {}
+	for beacon in data_beacons:
+		beacon_clients[beacon] = []
 	for client in data_clients:
 		beacon = data_clients[client]['beacon']
 		if beacon in data_beacons:
@@ -31,20 +33,26 @@ def index():
 			circles_beacon['name'] = data_beacon['vendor']
 		else:
 			circles_beacon['name'] = 'Unknown'
-		circles_beacon['children'] = []
-		circles_clients = circles_beacon['children']
-		for client in beacon_clients[beacon]:
-			data_client = data_clients[client]
-			circles_client = {}
-			if 'vendor' in data_client:
-				circles_client['name'] = data_client['vendor']
+		if len(beacon_clients[beacon]) == 0:
+			if data_beacon['rssi'] > -99:
+				circles_beacon['size'] = math.sqrt(100+data_client['rssi'])
 			else:
-				circles_client['name'] = 'Unknown'
-			if data_client['rssi'] > -99:
-				circles_client['size'] = math.sqrt(100+data_client['rssi'])
-			else:
-				data_client['size'] = 1
-			circles_clients.append(circles_client)
+				circles_beacon['size'] = 1
+		else:
+			circles_beacon['children'] = []
+			circles_clients = circles_beacon['children']
+			for client in beacon_clients[beacon]:
+				data_client = data_clients[client]
+				circles_client = {}
+				if 'vendor' in data_client:
+					circles_client['name'] = data_client['vendor']
+				else:
+					circles_client['name'] = 'Unknown'
+				if data_client['rssi'] > -99:
+					circles_client['size'] = math.sqrt(100+data_client['rssi'])
+				else:
+					data_client['size'] = 1
+				circles_clients.append(circles_client)
 		circles_beacons.append(circles_beacon)
 	return render_template('index.html', beacons=beacons, clients=clients, circles=json.dumps(circles))
 
