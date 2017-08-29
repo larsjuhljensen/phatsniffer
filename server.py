@@ -35,7 +35,7 @@ def index():
 			circles_beacon['name'] = 'Unknown'
 		if len(beacon_clients[beacon]) == 0:
 			if data_beacon['rssi'] > -99:
-				circles_beacon['size'] = math.sqrt(100+data_client['rssi'])
+				circles_beacon['size'] = math.sqrt(100+data_beacon['rssi'])
 			else:
 				circles_beacon['size'] = 1
 		else:
